@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+  namespace: monitoring
+data:
+  promtail.yaml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+      log_level: info
+
+    positions:
+      filename: /tmp/positions.yaml
+
+    clients:
+    - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+      batchwait: 1s
+      batchsize: 102400
+      timeout: 10s
+
+    scrape_configs:
+    - job_name: kubernetes-pods
+      kubernetes_sd_configs:
+      - role: pod
+      pipeline_stages:
+      - cri: {}  # For CRI-O/containerd runtime
+      - multiline:
+          firstline: '^\d{4}-\d{2}-\d{2}'
+          max_wait_time: 3s
+      relabel_configs:
+      # Keep only pods in target namespaces
+      - action: keep
+        source_labels: [__meta_kubernetes_namespace]
+        regex: (app|default|monitoring)  # Add your namespaces here
+      # Standard Kubernetes labels
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_pod_container_name]
+        target_label: container
+      - replacement: /var/log/pods/*$1/*.log
+        separator: /
+        source_labels:
+        - __meta_kubernetes_pod_uid
+        - __meta_kubernetes_pod_container_name
+        target_label: __path__
+      # Drop system pods
+      - action: drop
+        regex: true
+        source_labels: [__meta_kubernetes_pod_annotation_kubernetes_io_config_mirror]
+
+    - job_name: system
+      static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system-logs
+          __path__: /var/log/syslog
