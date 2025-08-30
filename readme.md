@@ -106,6 +106,86 @@ kubectl delete all --all -n monitoring
 # Create Azure Service Principal
 az ad sp create-for-rbac --name github-actions-sp \
     --role contributor \
-    --scopes /subscriptions/f7bce28b-d2d9-474f-99cc-5c05fc272c89/resourceGroups/aks-microservices-rg \
+    --scopes /subscriptions/123456/resourceGroups/aks-microservices-rg \
     --sdk-auth
+
+## Loki Logging System Deployment
+
+### 1. Deploy Loki Stack
+```bash
+# Apply Loki configuration
+kubectl apply -f monitoring/loki-config.yaml -n monitoring
+
+# Deploy Loki with persistent storage
+kubectl apply -f monitoring/loki-pvc.yaml -n monitoring
+kubectl apply -f monitoring/loki-deployment.yaml -n monitoring
+kubectl apply -f monitoring/loki-service.yaml -n monitoring
+
+# Deploy Promtail log collector
+kubectl apply -f monitoring/promtail-config.yaml -n monitoring
+kubectl apply -f monitoring/promtail-daemonset.yaml -n monitoring
+```
+
+### 2. Verification Commands
+```bash
+# Check Loki status
+kubectl get pods -n monitoring -l app=loki
+
+# View Loki logs
+kubectl logs -n monitoring -l app=loki --tail=50
+
+# Check Promtail status
+kubectl get pods -n monitoring -l app=promtail
+
+# Verify Promtail is scraping logs
+kubectl port-forward pod/$(kubectl get pod -n monitoring -l app=promtail -o jsonpath='{.items[0].metadata.name}') 9080:9080 &
+curl http://localhost:9080/targets | jq .
+```
+
+### 3. Port Forwarding for Access
+```bash
+# Access Loki API
+kubectl port-forward svc/loki -n monitoring 3100:3100 &
+
+# Access Grafana UI
+kubectl port-forward svc/grafana -n monitoring 3000:3000 &
+```
+
+### 4. Maintenance Commands
+```bash
+# Restart components
+kubectl rollout restart deployment/loki -n monitoring
+kubectl rollout restart daemonset/promtail -n monitoring
+
+# Delete all Loki resources
+kubectl delete -f monitoring/loki-config.yaml -f monitoring/loki-pvc.yaml \
+  -f monitoring/loki-deployment.yaml -f monitoring/loki-service.yaml -n monitoring
+```
+
+### 5. Sample Queries
+```bash
+# Query Loki via CLI
+curl -G -s "http://localhost:3100/loki/api/v1/query_range" \
+  --data-urlencode 'query={namespace="app"}' | jq .
+
+# Test log ingestion
+echo '{"streams":[{"stream":{"test":"readme"},"values":[[ "'$(date +%s)'000000000", "test log from README" ]]}]}' | \
+curl -H "Content-Type: application/json" -X POST --data-binary @- http://localhost:3100/loki/api/v1/push
+```
+
+### Grafana Configuration
+1. Add Loki datasource: `http://loki.monitoring.svc.cluster.local:3100`
+2. Sample queries:
+   - `{namespace="app"}`
+   - `{container="your-container"}`
+   - `{test="readme"}`
+
+### Troubleshooting
+```bash
+# Check storage utilization
+kubectl exec -it -n monitoring $(kubectl get pods -n monitoring -l app=loki -o jsonpath='{.items[0].metadata.name}') -- df -h /var/loki
+
+# Verify log ingestion rate
+curl -s http://localhost:3100/metrics | grep log_entries_total
+```
 
