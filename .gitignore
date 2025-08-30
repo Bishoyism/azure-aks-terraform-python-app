@@ -1,0 +1,77 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.python-version
+venv/
+env/
+.venv/
+.env
+
+# Docker
+**/.dockerignore
+docker-compose*.yml
+
+# Kubernetes
+**/kubeconfig
+**/*.kubeconfig
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+*.tfvars
+override.tf
+override.tf.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+
+# Logs
+*.log
+logs/
+
+# Secrets
+secrets.*
+*.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# macOS
+.DS_Store
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Test artifacts
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Build artifacts
+build/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Temp files
+*.tmp
+*~
+
+# PyCharm
+.idea/
+
+.DS_Store

@@ -1,0 +1,13 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: microservice-monitor
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: microservice
+  endpoints:
+  - port: web
+    interval: 30s
+    path: /metrics

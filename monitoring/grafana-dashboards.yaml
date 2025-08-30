@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  kubernetes-cluster.json: |
+    {
+      "__inputs": [],
+      "__requires": [],
+      "annotations": {
+        "list": []
+      },
+      "description": "Kubernetes cluster overview dashboard",
+      "editable": true,
+      "gnetId": 315,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [],
+      "panels": [],
+      "schemaVersion": 22,
+      "style": "dark",
+      "tags": ["kubernetes"],
+      "templating": {
+        "list": []
+      },
+      "time": {
+        "from": "now-6h",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "Kubernetes Cluster",
+      "uid": "",
+      "version": 0
+    }
+  kubernetes-pods.json: |
+    {
+      "__inputs": [],
+      "__requires": [],
+      "annotations": {
+        "list": []
+      },
+      "description": "Kubernetes pods monitoring dashboard",
+      "editable": true,
+      "gnetId": 6336,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [],
+      "panels": [],
+      "schemaVersion": 22,
+      "style": "dark",
+      "tags": ["kubernetes", "pods"],
+      "templating": {
+        "list": []
+      },
+      "time": {
+        "from": "now-6h",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "Kubernetes Pods",
+      "uid": "",
+      "version": 0
+    }

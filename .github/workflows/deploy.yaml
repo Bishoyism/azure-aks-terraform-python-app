@@ -1,0 +1,59 @@
+name: Build, Push & Deploy to ACR/AKS
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  ACR_NAME: bishoyflaskregistry  # Your ACR name
+  APP_NAME: microservices-app
+  K8S_NAMESPACE: app
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Login to ACR
+      run: |
+        az acr login --name $ACR_NAME
+
+    - name: Build and Push to ACR
+      run: |
+        # Build with explicit platform for AKS compatibility
+        docker build --platform linux/amd64 \
+          -t $ACR_NAME.azurecr.io/$APP_NAME:${{ github.sha }} \
+          -t $ACR_NAME.azurecr.io/$APP_NAME:latest .
+        
+        # Push to ACR
+        docker push $ACR_NAME.azurecr.io/$APP_NAME:${{ github.sha }}
+        docker push $ACR_NAME.azurecr.io/$APP_NAME:latest
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+
+    - name: Get AKS credentials
+      run: |
+        az aks get-credentials \
+          --resource-group aks-microservices-rg \
+          --name aks-microservices-cluster \
+          --overwrite-existing
+
+    - name: Deploy to AKS
+      run: |
+        # Update image in deployment
+        kubectl set image deployment/microservice-deployment \
+          microservice=$ACR_NAME.azurecr.io/$APP_NAME:${{ github.sha }} \
+          -n $K8S_NAMESPACE
+        
+        # Verify rollout
+        kubectl rollout status deployment/microservice-deployment -n $K8S_NAMESPACE
